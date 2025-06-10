@@ -80,7 +80,7 @@ while True:
     cap = cv2.VideoCapture(STREAM_URL)
     if not cap.isOpened():
         print("❌ Failed to open video stream. Retrying in 10s...")
-        send_text_to_all("⚠️ ESP32-CAM stream is offline. Retrying...")
+        # send_text_to_all("⚠️ ESP32-CAM stream is offline. Retrying...")
         time.sleep(10)
         continue
 
