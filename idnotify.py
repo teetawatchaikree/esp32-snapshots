@@ -22,7 +22,9 @@ os.makedirs(SNAPSHOT_FOLDER, exist_ok=True)
 # === Stream Configuration ===
 CAM_STREAMS = {
     'CAM1': 'http://192.168.1.158/stream',
-    # Add more cameras if needed
+    'CAM2': 'http://192.168.1.159/stream',
+    'CAM3': 'http://192.168.1.160/stream',
+    'CAM4': 'http://192.168.1.161/stream',
 }
 COOLDOWN = 10
 RETRY_INTERVAL = 5
