@@ -9,7 +9,7 @@ from linebot.models import TextSendMessage, ImageSendMessage
 from threading import Thread
 
 # === LINE Messaging API Configuration ===
-CHANNEL_ACCESS_TOKEN = 'YOUR_LINE_CHANNEL_ACCESS_TOKEN'
+CHANNEL_ACCESS_TOKEN = 'Cuh1ljT2/cIyTowwQ/7nMIAPHstRHXOCWL3rN9IhorMmFpCrL09JSf6ph8Y9EnaSNz+Tzc0xpcXqt14Zjpf/YiH2zlohXHYwaJPX8BUs2K9p3/1TofmWpn83p6/JBkI6CY2aUG+hQmTMpA4fq9bh7QdB04t89/1O/w1cDnyilFU='
 line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
 USER_ID_FILE = "line_user_ids.txt"
 
