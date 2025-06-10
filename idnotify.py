@@ -72,63 +72,68 @@ def git_push_and_confirm(filepath):
     return None
 
 # === Main Loop ===
+print("🔁 Starting infinite motion detection loop... Press ESC in window or Ctrl+C to stop.")
 
-print("🔁 Starting infinite motion detection loop... Press ESC in window to stop.")
+try:
+    while True:
+        print("🎥 Connecting to video stream...")
+        cap = cv2.VideoCapture(STREAM_URL)
+        if not cap.isOpened():
+            print("❌ Failed to open video stream. Retrying in 10s...")
+            time.sleep(10)
+            continue
 
-while True:
-    print("🎥 Connecting to video stream...")
-    cap = cv2.VideoCapture(STREAM_URL)
-    if not cap.isOpened():
-        print("❌ Failed to open video stream. Retrying in 10s...")
-        # send_text_to_all("⚠️ ESP32-CAM stream is offline. Retrying...")
-        time.sleep(10)
-        continue
+        ret, frame1 = cap.read()
+        ret2, frame2 = cap.read()
+        if not ret or not ret2:
+            print("❌ Failed to read initial frames. Retrying...")
+            cap.release()
+            time.sleep(5)
+            continue
 
-    ret, frame1 = cap.read()
-    ret2, frame2 = cap.read()
-    if not ret or not ret2:
-        print("❌ Failed to read initial frames. Retrying...")
+        while cap.isOpened():
+            diff = cv2.absdiff(frame1, frame2)
+            gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+            blur = cv2.GaussianBlur(gray, (5, 5), 0)
+            _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
+            dilated = cv2.dilate(thresh, None, iterations=3)
+            contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+            motion = any(cv2.contourArea(c) > 1000 for c in contours)
+            current_time = time.time()
+
+            if motion and (current_time - last_alert_time > COOLDOWN):
+                print("🚨 Motion detected!")
+                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                filename = f"snapshot_{timestamp}.jpg"
+                filepath = os.path.join(SNAPSHOT_FOLDER, filename)
+
+                cv2.imwrite(filepath, frame1)
+                print(f"💾 Snapshot saved: {filepath}")
+
+                image_url = git_push_and_confirm(filepath)
+                if image_url:
+                    send_text_to_all("📸 Motion Detected!")
+                    send_image_to_all(image_url)
+                else:
+                    send_text_to_all("⚠️ Motion detected, but image upload failed.")
+
+                last_alert_time = current_time
+
+            cv2.imshow("ESP32-CAM Motion Detection", frame1)
+
+            frame1 = frame2
+            ret, frame2 = cap.read()
+
+            if not ret or cv2.waitKey(30) == 27:
+                print("⛔ ESC pressed or stream dropped.")
+                break
+
         cap.release()
+        cv2.destroyAllWindows()
+        print("🔁 Restarting stream after disconnect...")
         time.sleep(5)
-        continue
 
-    while cap.isOpened():
-        diff = cv2.absdiff(frame1, frame2)
-        gray = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        _, thresh = cv2.threshold(blur, 20, 255, cv2.THRESH_BINARY)
-        dilated = cv2.dilate(thresh, None, iterations=3)
-        contours, _ = cv2.findContours(dilated, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
-        motion = any(cv2.contourArea(c) > 1000 for c in contours)
-        current_time = time.time()
-
-        if motion and (current_time - last_alert_time > COOLDOWN):
-            print("🚨 Motion detected!")
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            filename = f"snapshot_{timestamp}.jpg"
-            filepath = os.path.join(SNAPSHOT_FOLDER, filename)
-
-            cv2.imwrite(filepath, frame1)
-            print(f"💾 Snapshot saved: {filepath}")
-
-            image_url = git_push_and_confirm(filepath)
-            if image_url:
-                send_text_to_all("📸 Motion Detected!")
-                send_image_to_all(image_url)
-            else:
-                send_text_to_all("⚠️ Motion detected, but image upload failed.")
-
-            last_alert_time = current_time
-
-        cv2.imshow("ESP32-CAM Motion Detection", frame1)
-        frame1, frame2 = frame2, cap.read()[1]
-
-        if not frame2 or cv2.waitKey(30) == 27:
-            print("⛔ ESC pressed or stream dropped.")
-            break
-
-    cap.release()
+except KeyboardInterrupt:
+    print("\n🛑 Program interrupted by user. Exiting.")
     cv2.destroyAllWindows()
-    print("🔁 Restarting stream after disconnect...")
-    time.sleep(5)
